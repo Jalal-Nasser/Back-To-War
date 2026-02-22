@@ -1,6 +1,15 @@
 # Lobby and Match Configuration Schema (Up to 8 Players)
 
+Canonical source of truth: `lobby-match.schema.json`.
+
+Example machine-readable configs:
+- `examples/config_2v2.json`
+- `examples/config_1v6.json`
+- `examples/config_ffa.json`
+
 ## 1) JSON Schema (Draft 2020-12)
+The schema below mirrors `lobby-match.schema.json`. If there is any mismatch, `lobby-match.schema.json` is authoritative.
+
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -273,6 +282,12 @@ JSON schema handles shape and basic bounds. Enforce these cross-field rules on t
     - `rules.default_shared_unit_control` (if used)
 13. If `rules.allow_in_game_diplomacy == false`, reject diplomacy change requests at runtime.
 14. On lobby->match transition, freeze players/alliances/rules/settings into immutable match config.
+
+## Validation Implementation Notes
+- Step 1: Validate inbound JSON against `lobby-match.schema.json` using a Draft 2020-12 validator (for example Ajv).
+- Step 2: If schema validation passes, run cross-field invariants from Section 2 in deterministic server order.
+- Step 3: Reject on first invariant failure with a stable error code/message; do not partially apply config updates.
+- Step 4: Persist only canonicalized configs (normalized defaults, stable ordering) so replays receive identical input.
 
 ## 3) Example Configs
 

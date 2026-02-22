@@ -1,0 +1,465 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:cossacks-back-to-war:lobby-match-config:v1",
+  "title": "RTS Lobby/Match Configuration",
+  "description": "Canonical schema for lobby and match configuration (up to 8 players) for Cossacks - Back To War.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/LobbyConfig"
+    },
+    {
+      "$ref": "#/$defs/MatchConfig"
+    }
+  ],
+  "$defs": {
+    "Player": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "player_id",
+        "display_name",
+        "slot_index",
+        "color",
+        "faction_id",
+        "starting_position"
+      ],
+      "properties": {
+        "player_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "slot_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "faction_id": {
+          "type": "string",
+          "pattern": "^FACTION_[A-Z0-9_]+$"
+        },
+        "starting_position": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "is_host": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "Slot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slot_index",
+        "state"
+      ],
+      "properties": {
+        "slot_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "open",
+            "human",
+            "bot",
+            "closed"
+          ]
+        },
+        "occupied_by_player_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "bot_profile": {
+          "type": "string",
+          "enum": [
+            "easy",
+            "normal",
+            "hard",
+            "insane"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "enum": [
+                  "human",
+                  "bot"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "occupied_by_player_id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "enum": [
+                  "open",
+                  "closed"
+                ]
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "occupied_by_player_id"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "HostControls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "host_player_id",
+        "can_edit_slots",
+        "can_edit_alliances",
+        "can_edit_rules",
+        "can_edit_settings",
+        "can_start_match",
+        "lock_teams",
+        "lock_colors",
+        "lock_factions",
+        "lock_starting_positions"
+      ],
+      "properties": {
+        "host_player_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "can_edit_slots": {
+          "type": "boolean"
+        },
+        "can_edit_alliances": {
+          "type": "boolean"
+        },
+        "can_edit_rules": {
+          "type": "boolean"
+        },
+        "can_edit_settings": {
+          "type": "boolean"
+        },
+        "can_start_match": {
+          "type": "boolean"
+        },
+        "lock_teams": {
+          "type": "boolean"
+        },
+        "lock_colors": {
+          "type": "boolean"
+        },
+        "lock_factions": {
+          "type": "boolean"
+        },
+        "lock_starting_positions": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allow_in_game_diplomacy",
+        "default_shared_vision",
+        "default_shared_resources"
+      ],
+      "properties": {
+        "allow_in_game_diplomacy": {
+          "type": "boolean"
+        },
+        "default_shared_vision": {
+          "type": "boolean"
+        },
+        "default_shared_resources": {
+          "type": "boolean"
+        },
+        "default_shared_unit_control": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "GameSettings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "map_id",
+        "seed",
+        "tick_rate",
+        "input_delay_ticks"
+      ],
+      "properties": {
+        "map_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "tick_rate": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 128
+        },
+        "input_delay_ticks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30
+        }
+      }
+    },
+    "RelationValue": {
+      "type": "string",
+      "enum": [
+        "ALLY",
+        "ENEMY",
+        "NEUTRAL"
+      ]
+    },
+    "RelationMatrix": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 8,
+        "items": {
+          "$ref": "#/$defs/RelationValue"
+        }
+      }
+    },
+    "BoolMatrix": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 8,
+        "items": {
+          "type": "boolean"
+        }
+      }
+    },
+    "MaskArray": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 255
+      }
+    },
+    "AllianceConfigMatrix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "encoding",
+        "relation_matrix"
+      ],
+      "properties": {
+        "encoding": {
+          "const": "matrix"
+        },
+        "relation_matrix": {
+          "$ref": "#/$defs/RelationMatrix"
+        },
+        "shared_vision_matrix": {
+          "$ref": "#/$defs/BoolMatrix"
+        },
+        "shared_resources_matrix": {
+          "$ref": "#/$defs/BoolMatrix"
+        },
+        "shared_unit_control_matrix": {
+          "$ref": "#/$defs/BoolMatrix"
+        }
+      }
+    },
+    "AllianceConfigBitmask": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "encoding",
+        "ally_masks"
+      ],
+      "properties": {
+        "encoding": {
+          "const": "bitmasks"
+        },
+        "ally_masks": {
+          "$ref": "#/$defs/MaskArray"
+        },
+        "neutral_masks": {
+          "$ref": "#/$defs/MaskArray"
+        },
+        "shared_vision_masks": {
+          "$ref": "#/$defs/MaskArray"
+        },
+        "shared_resources_masks": {
+          "$ref": "#/$defs/MaskArray"
+        },
+        "shared_unit_control_masks": {
+          "$ref": "#/$defs/MaskArray"
+        }
+      }
+    },
+    "AllianceConfig": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AllianceConfigMatrix"
+        },
+        {
+          "$ref": "#/$defs/AllianceConfigBitmask"
+        }
+      ]
+    },
+    "LobbyConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "config_type",
+        "lobby_id",
+        "max_players",
+        "slots",
+        "players",
+        "host_controls",
+        "alliance_config",
+        "rules",
+        "game_settings"
+      ],
+      "properties": {
+        "config_type": {
+          "const": "lobby"
+        },
+        "lobby_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "max_players": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 8
+        },
+        "slots": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/Slot"
+          }
+        },
+        "players": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/Player"
+          }
+        },
+        "host_controls": {
+          "$ref": "#/$defs/HostControls"
+        },
+        "alliance_config": {
+          "$ref": "#/$defs/AllianceConfig"
+        },
+        "rules": {
+          "$ref": "#/$defs/Rules"
+        },
+        "game_settings": {
+          "$ref": "#/$defs/GameSettings"
+        }
+      }
+    },
+    "MatchConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "config_type",
+        "match_id",
+        "source_lobby_id",
+        "start_tick",
+        "max_players",
+        "players",
+        "alliance_config",
+        "rules",
+        "game_settings"
+      ],
+      "properties": {
+        "config_type": {
+          "const": "match"
+        },
+        "match_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "source_lobby_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "start_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_players": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 8
+        },
+        "players": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/Player"
+          }
+        },
+        "alliance_config": {
+          "$ref": "#/$defs/AllianceConfig"
+        },
+        "rules": {
+          "$ref": "#/$defs/Rules"
+        },
+        "game_settings": {
+          "$ref": "#/$defs/GameSettings"
+        }
+      }
+    }
+  }
+}

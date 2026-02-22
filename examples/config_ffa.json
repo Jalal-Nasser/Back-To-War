@@ -1,0 +1,151 @@
+{
+  "config_type": "lobby",
+  "lobby_id": "lobby_ffa_001",
+  "max_players": 8,
+  "slots": [
+    {
+      "slot_index": 0,
+      "state": "human",
+      "occupied_by_player_id": 0
+    },
+    {
+      "slot_index": 1,
+      "state": "human",
+      "occupied_by_player_id": 1
+    },
+    {
+      "slot_index": 2,
+      "state": "human",
+      "occupied_by_player_id": 2
+    },
+    {
+      "slot_index": 3,
+      "state": "human",
+      "occupied_by_player_id": 3
+    },
+    {
+      "slot_index": 4,
+      "state": "human",
+      "occupied_by_player_id": 4
+    },
+    {
+      "slot_index": 5,
+      "state": "human",
+      "occupied_by_player_id": 5
+    },
+    {
+      "slot_index": 6,
+      "state": "human",
+      "occupied_by_player_id": 6
+    },
+    {
+      "slot_index": 7,
+      "state": "human",
+      "occupied_by_player_id": 7
+    }
+  ],
+  "players": [
+    {
+      "player_id": 0,
+      "display_name": "P0",
+      "slot_index": 0,
+      "color": "#E53935",
+      "faction_id": "FACTION_A",
+      "starting_position": 0,
+      "is_host": true
+    },
+    {
+      "player_id": 1,
+      "display_name": "P1",
+      "slot_index": 1,
+      "color": "#1E88E5",
+      "faction_id": "FACTION_B",
+      "starting_position": 1
+    },
+    {
+      "player_id": 2,
+      "display_name": "P2",
+      "slot_index": 2,
+      "color": "#43A047",
+      "faction_id": "FACTION_C",
+      "starting_position": 2
+    },
+    {
+      "player_id": 3,
+      "display_name": "P3",
+      "slot_index": 3,
+      "color": "#FDD835",
+      "faction_id": "FACTION_D",
+      "starting_position": 3
+    },
+    {
+      "player_id": 4,
+      "display_name": "P4",
+      "slot_index": 4,
+      "color": "#8E24AA",
+      "faction_id": "FACTION_E",
+      "starting_position": 4
+    },
+    {
+      "player_id": 5,
+      "display_name": "P5",
+      "slot_index": 5,
+      "color": "#00ACC1",
+      "faction_id": "FACTION_F",
+      "starting_position": 5
+    },
+    {
+      "player_id": 6,
+      "display_name": "P6",
+      "slot_index": 6,
+      "color": "#6D4C41",
+      "faction_id": "FACTION_G",
+      "starting_position": 6
+    },
+    {
+      "player_id": 7,
+      "display_name": "P7",
+      "slot_index": 7,
+      "color": "#C0CA33",
+      "faction_id": "FACTION_H",
+      "starting_position": 7
+    }
+  ],
+  "host_controls": {
+    "host_player_id": 0,
+    "can_edit_slots": true,
+    "can_edit_alliances": true,
+    "can_edit_rules": true,
+    "can_edit_settings": true,
+    "can_start_match": true,
+    "lock_teams": false,
+    "lock_colors": false,
+    "lock_factions": false,
+    "lock_starting_positions": false
+  },
+  "alliance_config": {
+    "encoding": "bitmasks",
+    "ally_masks": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128
+    ]
+  },
+  "rules": {
+    "allow_in_game_diplomacy": false,
+    "default_shared_vision": false,
+    "default_shared_resources": false,
+    "default_shared_unit_control": false
+  },
+  "game_settings": {
+    "map_id": "map_iron_crater_8p",
+    "seed": 42424242,
+    "tick_rate": 20,
+    "input_delay_ticks": 3
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "config_type": "lobby",
+  "lobby_id": "lobby_2v2_001",
+  "max_players": 4,
+  "slots": [
+    {
+      "slot_index": 0,
+      "state": "human",
+      "occupied_by_player_id": 0
+    },
+    {
+      "slot_index": 1,
+      "state": "human",
+      "occupied_by_player_id": 1
+    },
+    {
+      "slot_index": 2,
+      "state": "human",
+      "occupied_by_player_id": 2
+    },
+    {
+      "slot_index": 3,
+      "state": "human",
+      "occupied_by_player_id": 3
+    }
+  ],
+  "players": [
+    {
+      "player_id": 0,
+      "display_name": "Alpha",
+      "slot_index": 0,
+      "color": "#E53935",
+      "faction_id": "FACTION_A",
+      "starting_position": 0,
+      "is_host": true
+    },
+    {
+      "player_id": 1,
+      "display_name": "Bravo",
+      "slot_index": 1,
+      "color": "#1E88E5",
+      "faction_id": "FACTION_B",
+      "starting_position": 1
+    },
+    {
+      "player_id": 2,
+      "display_name": "Charlie",
+      "slot_index": 2,
+      "color": "#43A047",
+      "faction_id": "FACTION_C",
+      "starting_position": 2
+    },
+    {
+      "player_id": 3,
+      "display_name": "Delta",
+      "slot_index": 3,
+      "color": "#FDD835",
+      "faction_id": "FACTION_D",
+      "starting_position": 3
+    }
+  ],
+  "host_controls": {
+    "host_player_id": 0,
+    "can_edit_slots": true,
+    "can_edit_alliances": true,
+    "can_edit_rules": true,
+    "can_edit_settings": true,
+    "can_start_match": true,
+    "lock_teams": false,
+    "lock_colors": false,
+    "lock_factions": false,
+    "lock_starting_positions": false
+  },
+  "alliance_config": {
+    "encoding": "matrix",
+    "relation_matrix": [
+      [
+        "ALLY",
+        "ALLY",
+        "ENEMY",
+        "ENEMY"
+      ],
+      [
+        "ALLY",
+        "ALLY",
+        "ENEMY",
+        "ENEMY"
+      ],
+      [
+        "ENEMY",
+        "ENEMY",
+        "ALLY",
+        "ALLY"
+      ],
+      [
+        "ENEMY",
+        "ENEMY",
+        "ALLY",
+        "ALLY"
+      ]
+    ]
+  },
+  "rules": {
+    "allow_in_game_diplomacy": true,
+    "default_shared_vision": true,
+    "default_shared_resources": false,
+    "default_shared_unit_control": false
+  },
+  "game_settings": {
+    "map_id": "map_river_crossing_4p",
+    "seed": 123456789,
+    "tick_rate": 20,
+    "input_delay_ticks": 3
+  }
+}

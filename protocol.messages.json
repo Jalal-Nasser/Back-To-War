@@ -1,0 +1,1278 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:cossacks-back-to-war:protocol-messages:v1",
+  "title": "Deterministic Lockstep Protocol Message Schemas",
+  "description": "Machine-readable schemas for lockstep networking messages.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "type",
+    "protocol_version"
+  ],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "HELLO",
+        "JOIN_LOBBY",
+        "LOBBY_STATE",
+        "SET_ALLIANCE",
+        "READY",
+        "START_MATCH",
+        "CLIENT_COMMANDS",
+        "SERVER_TICK_BUNDLE",
+        "DESYNC_HASH",
+        "RESYNC_REQUEST",
+        "RESYNC_SNAPSHOT"
+      ]
+    },
+    "protocol_version": {
+      "type": "integer",
+      "const": 1
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/HELLO"
+    },
+    {
+      "$ref": "#/$defs/JOIN_LOBBY"
+    },
+    {
+      "$ref": "#/$defs/LOBBY_STATE"
+    },
+    {
+      "$ref": "#/$defs/SET_ALLIANCE"
+    },
+    {
+      "$ref": "#/$defs/READY"
+    },
+    {
+      "$ref": "#/$defs/START_MATCH"
+    },
+    {
+      "$ref": "#/$defs/CLIENT_COMMANDS"
+    },
+    {
+      "$ref": "#/$defs/SERVER_TICK_BUNDLE"
+    },
+    {
+      "$ref": "#/$defs/DESYNC_HASH"
+    },
+    {
+      "$ref": "#/$defs/RESYNC_REQUEST"
+    },
+    {
+      "$ref": "#/$defs/RESYNC_SNAPSHOT"
+    }
+  ],
+  "$defs": {
+    "Tick": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483647
+    },
+    "Seq": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "PlayerId": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 7
+    },
+    "Role": {
+      "type": "string",
+      "enum": [
+        "player",
+        "spectator"
+      ]
+    },
+    "RelationState": {
+      "type": "string",
+      "enum": [
+        "ALLY",
+        "ENEMY",
+        "NEUTRAL"
+      ]
+    },
+    "LobbyId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "MatchId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "SessionId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "HexHash": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{16,128}$"
+    },
+    "Base64Data": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9+/=]+$"
+    },
+    "Vec2i": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y"
+      ],
+      "properties": {
+        "x": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "y": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      }
+    },
+    "AllianceUpdate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "a_player_id",
+        "b_player_id",
+        "new_state"
+      ],
+      "properties": {
+        "a_player_id": {
+          "$ref": "#/$defs/PlayerId"
+        },
+        "b_player_id": {
+          "$ref": "#/$defs/PlayerId"
+        },
+        "new_state": {
+          "$ref": "#/$defs/RelationState"
+        },
+        "shared_vision": {
+          "type": "boolean",
+          "default": false
+        },
+        "shared_resources": {
+          "type": "boolean",
+          "default": false
+        },
+        "shared_unit_control": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "SimCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command_id",
+        "op"
+      ],
+      "properties": {
+        "command_id": {
+          "$ref": "#/$defs/Seq"
+        },
+        "op": {
+          "type": "string",
+          "enum": [
+            "MOVE",
+            "ATTACK",
+            "STOP",
+            "BUILD",
+            "TRAIN",
+            "RESEARCH",
+            "SET_RALLY",
+            "SET_DIPLOMACY"
+          ]
+        },
+        "entity_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1024,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4294967295
+          }
+        },
+        "target_entity_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "target_position": {
+          "$ref": "#/$defs/Vec2i"
+        },
+        "build_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "unit_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "research_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "queue": {
+          "type": "boolean"
+        },
+        "diplomacy_update": {
+          "$ref": "#/$defs/AllianceUpdate"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "MOVE"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "entity_ids",
+              "target_position"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "ATTACK"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "entity_ids",
+              "target_entity_id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "STOP"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "entity_ids"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "BUILD"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "entity_ids",
+              "target_position",
+              "build_type"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "TRAIN"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "entity_ids",
+              "unit_type"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "RESEARCH"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "entity_ids",
+              "research_id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "SET_RALLY"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "entity_ids",
+              "target_position"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "SET_DIPLOMACY"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "diplomacy_update"
+            ]
+          }
+        }
+      ]
+    },
+    "TickCommandBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_tick",
+        "commands"
+      ],
+      "properties": {
+        "target_tick": {
+          "$ref": "#/$defs/Tick"
+        },
+        "commands": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 512,
+          "items": {
+            "$ref": "#/$defs/SimCommand"
+          }
+        }
+      }
+    },
+    "PlayerTickInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "player_id",
+        "source",
+        "accepted_client_input_seq",
+        "commands"
+      ],
+      "properties": {
+        "player_id": {
+          "$ref": "#/$defs/PlayerId"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "PLAYER",
+            "AI",
+            "NOOP"
+          ]
+        },
+        "accepted_client_input_seq": {
+          "type": "integer",
+          "minimum": -1,
+          "maximum": 4294967295
+        },
+        "commands": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 512,
+          "items": {
+            "$ref": "#/$defs/SimCommand"
+          }
+        }
+      }
+    },
+    "AcceptedInputSeq": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "player_id",
+        "last_accepted_client_input_seq"
+      ],
+      "properties": {
+        "player_id": {
+          "$ref": "#/$defs/PlayerId"
+        },
+        "last_accepted_client_input_seq": {
+          "type": "integer",
+          "minimum": -1,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "SystemEventDiplomacyChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_type",
+        "event_id",
+        "apply_tick",
+        "a_player_id",
+        "b_player_id",
+        "new_state",
+        "shared_vision",
+        "shared_resources",
+        "shared_unit_control"
+      ],
+      "properties": {
+        "event_type": {
+          "const": "DIPLOMACY_CHANGE"
+        },
+        "event_id": {
+          "$ref": "#/$defs/Seq"
+        },
+        "apply_tick": {
+          "$ref": "#/$defs/Tick"
+        },
+        "a_player_id": {
+          "$ref": "#/$defs/PlayerId"
+        },
+        "b_player_id": {
+          "$ref": "#/$defs/PlayerId"
+        },
+        "new_state": {
+          "$ref": "#/$defs/RelationState"
+        },
+        "shared_vision": {
+          "type": "boolean"
+        },
+        "shared_resources": {
+          "type": "boolean"
+        },
+        "shared_unit_control": {
+          "type": "boolean"
+        }
+      }
+    },
+    "HELLO": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "protocol_version",
+        "phase",
+        "connection_nonce"
+      ],
+      "properties": {
+        "type": {
+          "const": "HELLO"
+        },
+        "protocol_version": {
+          "const": 1
+        },
+        "phase": {
+          "type": "string",
+          "enum": [
+            "request",
+            "response"
+          ]
+        },
+        "connection_nonce": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{16,32}$"
+        },
+        "requested_role": {
+          "$ref": "#/$defs/Role"
+        },
+        "resume_token": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "last_applied_tick": {
+          "type": "integer",
+          "minimum": -1,
+          "maximum": 2147483647
+        },
+        "accepted": {
+          "type": "boolean"
+        },
+        "reject_code": {
+          "type": "string",
+          "enum": [
+            "UNSUPPORTED_PROTOCOL",
+            "BAD_TOKEN",
+            "SERVER_FULL",
+            "BANNED",
+            "INVALID_REQUEST"
+          ]
+        },
+        "assigned_role": {
+          "$ref": "#/$defs/Role"
+        },
+        "session_id": {
+          "$ref": "#/$defs/SessionId"
+        },
+        "server_tick": {
+          "$ref": "#/$defs/Tick"
+        },
+        "player_id": {
+          "$ref": "#/$defs/PlayerId"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "phase": {
+                "const": "request"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "requested_role"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "phase": {
+                "const": "response"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "accepted",
+              "server_tick"
+            ]
+          }
+        }
+      ]
+    },
+    "JOIN_LOBBY": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "protocol_version",
+        "session_id",
+        "lobby_id",
+        "requested_role",
+        "display_name"
+      ],
+      "properties": {
+        "type": {
+          "const": "JOIN_LOBBY"
+        },
+        "protocol_version": {
+          "const": 1
+        },
+        "session_id": {
+          "$ref": "#/$defs/SessionId"
+        },
+        "lobby_id": {
+          "$ref": "#/$defs/LobbyId"
+        },
+        "requested_role": {
+          "$ref": "#/$defs/Role"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "requested_slot_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "resume_player_id": {
+          "$ref": "#/$defs/PlayerId"
+        }
+      }
+    },
+    "LOBBY_STATE": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "protocol_version",
+        "lobby_id",
+        "revision",
+        "lobby_config",
+        "ready_player_ids",
+        "spectator_count"
+      ],
+      "properties": {
+        "type": {
+          "const": "LOBBY_STATE"
+        },
+        "protocol_version": {
+          "const": 1
+        },
+        "lobby_id": {
+          "$ref": "#/$defs/LobbyId"
+        },
+        "revision": {
+          "$ref": "#/$defs/Seq"
+        },
+        "lobby_config": {
+          "$ref": "./lobby-match.schema.json#/$defs/LobbyConfig"
+        },
+        "ready_player_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "minItems": 0,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/PlayerId"
+          }
+        },
+        "spectator_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        }
+      }
+    },
+    "SET_ALLIANCE": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "protocol_version",
+        "scope",
+        "request_id",
+        "issuer_player_id",
+        "request_tick",
+        "a_player_id",
+        "b_player_id",
+        "new_state"
+      ],
+      "properties": {
+        "type": {
+          "const": "SET_ALLIANCE"
+        },
+        "protocol_version": {
+          "const": 1
+        },
+        "scope": {
+          "type": "string",
+          "enum": [
+            "lobby",
+            "match"
+          ]
+        },
+        "request_id": {
+          "$ref": "#/$defs/Seq"
+        },
+        "issuer_player_id": {
+          "$ref": "#/$defs/PlayerId"
+        },
+        "request_tick": {
+          "$ref": "#/$defs/Tick"
+        },
+        "lobby_id": {
+          "$ref": "#/$defs/LobbyId"
+        },
+        "match_id": {
+          "$ref": "#/$defs/MatchId"
+        },
+        "a_player_id": {
+          "$ref": "#/$defs/PlayerId"
+        },
+        "b_player_id": {
+          "$ref": "#/$defs/PlayerId"
+        },
+        "new_state": {
+          "$ref": "#/$defs/RelationState"
+        },
+        "shared_vision": {
+          "type": "boolean",
+          "default": false
+        },
+        "shared_resources": {
+          "type": "boolean",
+          "default": false
+        },
+        "shared_unit_control": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "lobby"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "lobby_id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "match"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "match_id"
+            ]
+          }
+        }
+      ]
+    },
+    "READY": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "protocol_version",
+        "lobby_id",
+        "player_id",
+        "ready",
+        "revision_seen"
+      ],
+      "properties": {
+        "type": {
+          "const": "READY"
+        },
+        "protocol_version": {
+          "const": 1
+        },
+        "lobby_id": {
+          "$ref": "#/$defs/LobbyId"
+        },
+        "player_id": {
+          "$ref": "#/$defs/PlayerId"
+        },
+        "ready": {
+          "type": "boolean"
+        },
+        "revision_seen": {
+          "$ref": "#/$defs/Seq"
+        }
+      }
+    },
+    "START_MATCH": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "protocol_version",
+        "phase"
+      ],
+      "properties": {
+        "type": {
+          "const": "START_MATCH"
+        },
+        "protocol_version": {
+          "const": 1
+        },
+        "phase": {
+          "type": "string",
+          "enum": [
+            "request",
+            "announce"
+          ]
+        },
+        "lobby_id": {
+          "$ref": "#/$defs/LobbyId"
+        },
+        "requester_player_id": {
+          "$ref": "#/$defs/PlayerId"
+        },
+        "lobby_revision_seen": {
+          "$ref": "#/$defs/Seq"
+        },
+        "match_id": {
+          "$ref": "#/$defs/MatchId"
+        },
+        "start_tick": {
+          "$ref": "#/$defs/Tick"
+        },
+        "match_config": {
+          "$ref": "./lobby-match.schema.json#/$defs/MatchConfig"
+        },
+        "active_player_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/PlayerId"
+          }
+        },
+        "spectator_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "phase": {
+                "const": "request"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "lobby_id",
+              "requester_player_id",
+              "lobby_revision_seen"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "phase": {
+                "const": "announce"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "lobby_id",
+              "match_id",
+              "start_tick",
+              "match_config",
+              "active_player_ids",
+              "spectator_count"
+            ]
+          }
+        }
+      ]
+    },
+    "CLIENT_COMMANDS": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "protocol_version",
+        "match_id",
+        "sender_player_id",
+        "client_input_seq",
+        "ack_bundle_tick",
+        "bundles"
+      ],
+      "properties": {
+        "type": {
+          "const": "CLIENT_COMMANDS"
+        },
+        "protocol_version": {
+          "const": 1
+        },
+        "match_id": {
+          "$ref": "#/$defs/MatchId"
+        },
+        "sender_player_id": {
+          "$ref": "#/$defs/PlayerId"
+        },
+        "client_input_seq": {
+          "$ref": "#/$defs/Seq"
+        },
+        "ack_bundle_tick": {
+          "type": "integer",
+          "minimum": -1,
+          "maximum": 2147483647
+        },
+        "bundles": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/TickCommandBundle"
+          }
+        }
+      }
+    },
+    "SERVER_TICK_BUNDLE": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "protocol_version",
+        "match_id",
+        "bundle_tick",
+        "server_bundle_seq",
+        "expected_prev_bundle_tick",
+        "player_inputs",
+        "system_events",
+        "last_accepted_client_input_seq_by_player",
+        "bundle_hash"
+      ],
+      "properties": {
+        "type": {
+          "const": "SERVER_TICK_BUNDLE"
+        },
+        "protocol_version": {
+          "const": 1
+        },
+        "match_id": {
+          "$ref": "#/$defs/MatchId"
+        },
+        "bundle_tick": {
+          "$ref": "#/$defs/Tick"
+        },
+        "server_bundle_seq": {
+          "$ref": "#/$defs/Seq"
+        },
+        "expected_prev_bundle_tick": {
+          "type": "integer",
+          "minimum": -1,
+          "maximum": 2147483647
+        },
+        "player_inputs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/PlayerTickInput"
+          }
+        },
+        "system_events": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 256,
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/SystemEventDiplomacyChange"
+              }
+            ]
+          }
+        },
+        "last_accepted_client_input_seq_by_player": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/AcceptedInputSeq"
+          }
+        },
+        "bundle_hash": {
+          "$ref": "#/$defs/HexHash"
+        }
+      }
+    },
+    "DESYNC_HASH": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "protocol_version",
+        "match_id",
+        "sender_role",
+        "tick",
+        "sim_hash",
+        "last_applied_bundle_tick"
+      ],
+      "properties": {
+        "type": {
+          "const": "DESYNC_HASH"
+        },
+        "protocol_version": {
+          "const": 1
+        },
+        "match_id": {
+          "$ref": "#/$defs/MatchId"
+        },
+        "sender_role": {
+          "$ref": "#/$defs/Role"
+        },
+        "sender_player_id": {
+          "$ref": "#/$defs/PlayerId"
+        },
+        "tick": {
+          "$ref": "#/$defs/Tick"
+        },
+        "sim_hash": {
+          "$ref": "#/$defs/HexHash"
+        },
+        "last_applied_bundle_tick": {
+          "type": "integer",
+          "minimum": -1,
+          "maximum": 2147483647
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "sender_role": {
+                "const": "player"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "sender_player_id"
+            ]
+          }
+        }
+      ]
+    },
+    "RESYNC_REQUEST": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "protocol_version",
+        "match_id",
+        "sender_role",
+        "reason",
+        "last_applied_tick"
+      ],
+      "properties": {
+        "type": {
+          "const": "RESYNC_REQUEST"
+        },
+        "protocol_version": {
+          "const": 1
+        },
+        "match_id": {
+          "$ref": "#/$defs/MatchId"
+        },
+        "sender_role": {
+          "$ref": "#/$defs/Role"
+        },
+        "sender_player_id": {
+          "$ref": "#/$defs/PlayerId"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "HASH_MISMATCH",
+            "BUNDLE_GAP",
+            "RECONNECT",
+            "MANUAL"
+          ]
+        },
+        "last_applied_tick": {
+          "type": "integer",
+          "minimum": -1,
+          "maximum": 2147483647
+        },
+        "requested_snapshot_tick": {
+          "$ref": "#/$defs/Tick"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "sender_role": {
+                "const": "player"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "sender_player_id"
+            ]
+          }
+        }
+      ]
+    },
+    "RESYNC_SNAPSHOT": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "protocol_version",
+        "match_id",
+        "snapshot_id",
+        "snapshot_tick",
+        "chunk_index",
+        "chunk_count",
+        "is_last_chunk",
+        "encoding",
+        "data_base64",
+        "state_hash",
+        "post_snapshot_bundle_start_tick"
+      ],
+      "properties": {
+        "type": {
+          "const": "RESYNC_SNAPSHOT"
+        },
+        "protocol_version": {
+          "const": 1
+        },
+        "match_id": {
+          "$ref": "#/$defs/MatchId"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "snapshot_tick": {
+          "$ref": "#/$defs/Tick"
+        },
+        "chunk_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1048576
+        },
+        "chunk_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576
+        },
+        "is_last_chunk": {
+          "type": "boolean"
+        },
+        "encoding": {
+          "type": "string",
+          "enum": [
+            "zstd-msgpack",
+            "gzip-json",
+            "raw-json"
+          ]
+        },
+        "data_base64": {
+          "$ref": "#/$defs/Base64Data"
+        },
+        "state_hash": {
+          "$ref": "#/$defs/HexHash"
+        },
+        "post_snapshot_bundle_start_tick": {
+          "$ref": "#/$defs/Tick"
+        }
+      }
+    }
+  },
+  "x-messageMeta": {
+    "HELLO": {
+      "direction": "bidirectional",
+      "reliability": "reliable",
+      "validation_rules": [
+        "protocol_version must equal 1",
+        "resume_token must be valid for reconnect if provided"
+      ]
+    },
+    "JOIN_LOBBY": {
+      "direction": "client_to_server",
+      "reliability": "reliable",
+      "validation_rules": [
+        "lobby must exist and be open",
+        "requested_role spectator cannot occupy player slot"
+      ]
+    },
+    "LOBBY_STATE": {
+      "direction": "server_to_client",
+      "reliability": "reliable",
+      "validation_rules": [
+        "revision must be monotonically increasing",
+        "lobby_config must validate against lobby-match.schema.json"
+      ]
+    },
+    "SET_ALLIANCE": {
+      "direction": "client_to_server",
+      "reliability": "reliable",
+      "validation_rules": [
+        "a_player_id and b_player_id must be different valid seats",
+        "scope=match requires allow_in_game_diplomacy=true",
+        "non-ally relations must clear shared flags"
+      ]
+    },
+    "READY": {
+      "direction": "client_to_server",
+      "reliability": "reliable",
+      "validation_rules": [
+        "sender must control the declared player_id",
+        "revision_seen must be valid for lobby state transition"
+      ]
+    },
+    "START_MATCH": {
+      "direction": "bidirectional",
+      "reliability": "reliable",
+      "validation_rules": [
+        "request phase allowed only by authorized starter",
+        "announce phase must include schema-valid MatchConfig"
+      ]
+    },
+    "CLIENT_COMMANDS": {
+      "direction": "client_to_server",
+      "reliability": "unreliable_redundant",
+      "validation_rules": [
+        "target_tick must satisfy target_tick >= server_tick + input_delay_ticks",
+        "dedupe key is (sender_player_id,target_tick,command_id)",
+        "entity_ids must be sorted ascending and unique"
+      ]
+    },
+    "SERVER_TICK_BUNDLE": {
+      "direction": "server_to_client",
+      "reliability": "reliable_ack_resend",
+      "validation_rules": [
+        "bundle_tick must be contiguous",
+        "player_inputs must contain exactly one entry per active player",
+        "system diplomacy events must be sorted by event_id for same apply_tick"
+      ]
+    },
+    "DESYNC_HASH": {
+      "direction": "client_to_server",
+      "reliability": "unreliable_periodic",
+      "validation_rules": [
+        "hash format must be valid hex",
+        "sender_role=player requires sender_player_id"
+      ]
+    },
+    "RESYNC_REQUEST": {
+      "direction": "client_to_server",
+      "reliability": "reliable",
+      "validation_rules": [
+        "reason must be valid enum",
+        "sender_role=player requires sender_player_id"
+      ]
+    },
+    "RESYNC_SNAPSHOT": {
+      "direction": "server_to_client",
+      "reliability": "reliable",
+      "validation_rules": [
+        "chunks are assembled by (snapshot_id,chunk_index)",
+        "state_hash must match reconstructed snapshot"
+      ]
+    }
+  }
+}
