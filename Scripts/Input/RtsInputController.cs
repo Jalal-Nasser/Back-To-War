@@ -68,9 +68,12 @@ namespace CossacksRTS.Input
         private void Awake()
         {
             if (worldCamera == null) worldCamera = Camera.main;
+
+#pragma warning disable CS0618 // keep your generated behavior; we'll modernize later
             if (selectionManager == null) selectionManager = FindObjectOfType<SelectionManager>();
             if (commandBuffer == null) commandBuffer = FindObjectOfType<CommandBuffer>();
             if (uiBlocker == null) uiBlocker = FindObjectOfType<UIBlocker>();
+#pragma warning restore CS0618
         }
 
         private void Update()
@@ -95,10 +98,7 @@ namespace CossacksRTS.Input
 
         private void AdvanceLocalTick()
         {
-            if (!autoAdvanceLocalTick)
-            {
-                return;
-            }
+            if (!autoAdvanceLocalTick) return;
 
             float step = 1f / Mathf.Max(1, localTickRateHz);
             _tickAccumulator += Time.unscaledDeltaTime;
@@ -112,26 +112,26 @@ namespace CossacksRTS.Input
 
         private void HandleSelectionInput()
         {
-            if (Input.GetMouseButtonDown(0))
+            if (global::UnityEngine.Input.GetMouseButtonDown(0))
             {
                 _selectionBlockedByUi = IsUiBlocked();
                 if (!_selectionBlockedByUi)
                 {
-                    selectionManager.BeginPointerSelection(Input.mousePosition);
+                    selectionManager.BeginPointerSelection(global::UnityEngine.Input.mousePosition);
                 }
             }
 
-            if (Input.GetMouseButton(0) && !_selectionBlockedByUi)
+            if (global::UnityEngine.Input.GetMouseButton(0) && !_selectionBlockedByUi)
             {
-                selectionManager.UpdatePointerSelection(Input.mousePosition);
+                selectionManager.UpdatePointerSelection(global::UnityEngine.Input.mousePosition);
             }
 
-            if (Input.GetMouseButtonUp(0))
+            if (global::UnityEngine.Input.GetMouseButtonUp(0))
             {
                 if (!_selectionBlockedByUi)
                 {
                     bool shift = IsShiftPressed();
-                    selectionManager.EndPointerSelection(Input.mousePosition, shift);
+                    selectionManager.EndPointerSelection(global::UnityEngine.Input.mousePosition, shift);
                 }
 
                 _selectionBlockedByUi = false;
@@ -140,19 +140,19 @@ namespace CossacksRTS.Input
 
         private void HandleCommandModeHotkeys()
         {
-            if (Input.GetKeyDown(KeyCode.A))
+            if (global::UnityEngine.Input.GetKeyDown(KeyCode.A))
             {
                 _armedOrder = ArmedOrder.AttackMove;
                 if (debugLogs) Debug.Log("[RtsInput] Armed order: AttackMove");
             }
 
-            if (Input.GetKeyDown(KeyCode.P))
+            if (global::UnityEngine.Input.GetKeyDown(KeyCode.P))
             {
                 _armedOrder = ArmedOrder.Patrol;
                 if (debugLogs) Debug.Log("[RtsInput] Armed order: Patrol");
             }
 
-            if (Input.GetKeyDown(KeyCode.R))
+            if (global::UnityEngine.Input.GetKeyDown(KeyCode.R))
             {
                 _armedOrder = ArmedOrder.SetRally;
                 if (debugLogs) Debug.Log("[RtsInput] Armed order: SetRallyPoint");
@@ -161,17 +161,14 @@ namespace CossacksRTS.Input
 
         private void HandleImmediateHotkeys()
         {
-            if (!selectionManager.HasSelection)
-            {
-                return;
-            }
+            if (!selectionManager.HasSelection) return;
 
-            if (Input.GetKeyDown(KeyCode.S))
+            if (global::UnityEngine.Input.GetKeyDown(KeyCode.S))
             {
                 EnqueueSelectionCommand(CommandType.Stop, CommandTargetKind.None, 0, default, IsShiftPressed());
             }
 
-            if (Input.GetKeyDown(KeyCode.H))
+            if (global::UnityEngine.Input.GetKeyDown(KeyCode.H))
             {
                 EnqueueSelectionCommand(CommandType.Hold, CommandTargetKind.None, 0, default, IsShiftPressed());
             }
@@ -179,25 +176,10 @@ namespace CossacksRTS.Input
 
         private void HandleContextRightClick()
         {
-            if (!Input.GetMouseButtonDown(1))
-            {
-                return;
-            }
-
-            if (IsUiBlocked())
-            {
-                return;
-            }
-
-            if (!selectionManager.HasSelection)
-            {
-                return;
-            }
-
-            if (!TryRaycastFromMouse(out var hit))
-            {
-                return;
-            }
+            if (!global::UnityEngine.Input.GetMouseButtonDown(1)) return;
+            if (IsUiBlocked()) return;
+            if (!selectionManager.HasSelection) return;
+            if (!TryRaycastFromMouse(out var hit)) return;
 
             bool queued = IsShiftPressed();
             var targetPos = Quantization.FromWorldPoint(hit.point);
@@ -207,6 +189,7 @@ namespace CossacksRTS.Input
             int targetEntityId = 0;
 
             var hitSelectable = hit.collider.GetComponentInParent<SelectableEntity>();
+
             if (_armedOrder == ArmedOrder.SetRally)
             {
                 commandType = CommandType.SetRallyPoint;
@@ -254,10 +237,7 @@ namespace CossacksRTS.Input
             bool queued)
         {
             var selected = selectionManager.GetSelectionIdsDeterministic();
-            if (selected == null || selected.Length == 0)
-            {
-                return;
-            }
+            if (selected == null || selected.Length == 0) return;
 
             var command = new DeterministicCommand
             {
@@ -285,7 +265,7 @@ namespace CossacksRTS.Input
 
         private bool TryRaycastFromMouse(out RaycastHit hit)
         {
-            var ray = worldCamera.ScreenPointToRay(Input.mousePosition);
+            var ray = worldCamera.ScreenPointToRay(global::UnityEngine.Input.mousePosition);
             return Physics.Raycast(ray, out hit, commandRaycastDistance, commandRaycastMask, QueryTriggerInteraction.Ignore);
         }
 
@@ -296,7 +276,8 @@ namespace CossacksRTS.Input
 
         private static bool IsShiftPressed()
         {
-            return Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+            return global::UnityEngine.Input.GetKey(KeyCode.LeftShift) ||
+                   global::UnityEngine.Input.GetKey(KeyCode.RightShift);
         }
     }
 }

@@ -19,47 +19,32 @@ namespace CossacksRTS.UI
 
         public bool IsPointerBlocked()
         {
-            if (!blockWhenPointerOverUi)
-            {
-                return false;
-            }
+            if (!blockWhenPointerOverUi) return false;
+            if (EventSystem.current == null) return false;
 
-            if (EventSystem.current == null)
-            {
-                return false;
-            }
+            // Quick check (works for most UI)
+            if (EventSystem.current.IsPointerOverGameObject()) return true;
 
-            if (EventSystem.current.IsPointerOverGameObject())
-            {
-                return true;
-            }
-
-            if (blockingRaycasters == null || blockingRaycasters.Count == 0)
-            {
-                return false;
-            }
+            // Optional: explicit raycaster check (useful when multiple canvases)
+            if (blockingRaycasters == null || blockingRaycasters.Count == 0) return false;
 
             if (_pointerEventData == null)
             {
                 _pointerEventData = new PointerEventData(EventSystem.current);
             }
 
-            _pointerEventData.position = Input.mousePosition;
+            // IMPORTANT: fully qualify UnityEngine.Input to avoid namespace collision with CossacksRTS.Input
+            _pointerEventData.position = global::UnityEngine.Input.mousePosition;
+
             _raycastResults.Clear();
 
             for (int i = 0; i < blockingRaycasters.Count; i++)
             {
                 var raycaster = blockingRaycasters[i];
-                if (raycaster == null || !raycaster.isActiveAndEnabled)
-                {
-                    continue;
-                }
+                if (raycaster == null || !raycaster.isActiveAndEnabled) continue;
 
                 raycaster.Raycast(_pointerEventData, _raycastResults);
-                if (_raycastResults.Count > 0)
-                {
-                    return true;
-                }
+                if (_raycastResults.Count > 0) return true;
             }
 
             return false;
