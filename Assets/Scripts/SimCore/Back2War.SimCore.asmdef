@@ -1,0 +1,14 @@
+﻿{
+  "name": "Back2War.SimCore",
+  "rootNamespace": "Back2War.SimCore",
+  "references": [],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}
