@@ -1,88 +1,88 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using Back2War.Core.Commands;
 using UnityEngine;
 
 namespace Back2War.Core.Simulation
 {
     /// <summary>
-    /// Determinism constraints:
-    /// - Commands are buffered by ApplyTick.
-    /// - Per-tick execution order is stable: (PlayerId, CommandSeq, Type, FirstSelectedEntityId).
-    /// - SelectedEntityIds are canonicalized to sorted unique arrays at enqueue.
+    /// Deterministic per-tick command queue.
     /// </summary>
     public sealed class CommandQueue : MonoBehaviour
     {
-        [SerializeField] private bool debugLogs = true;
-
-        private readonly SortedDictionary<uint, List<SimCommand>> _commandsByTick =
+        private readonly SortedDictionary<uint, List<SimCommand>> _byTick =
             new SortedDictionary<uint, List<SimCommand>>();
 
-        public int BufferedTicks => _commandsByTick.Count;
+        private readonly StringBuilder _sb = new StringBuilder(128);
 
-        public void Enqueue(SimCommand command)
+        public void Enqueue(SimCommand cmd)
         {
-            SimCommand canonical = Canonicalize(command);
+            cmd.SelectedEntityIds = Canonicalize(cmd.SelectedEntityIds);
 
-            if (!_commandsByTick.TryGetValue(canonical.ApplyTick, out List<SimCommand> list))
+            if (!_byTick.TryGetValue(cmd.ApplyTick, out List<SimCommand> list))
             {
-                list = new List<SimCommand>(16);
-                _commandsByTick.Add(canonical.ApplyTick, list);
+                list = new List<SimCommand>(8);
+                _byTick.Add(cmd.ApplyTick, list);
             }
 
-            list.Add(canonical);
+            list.Add(cmd);
         }
 
-        public void ProcessTick(uint localSimTick)
+        public void ProcessTick(uint tick)
         {
-            if (!_commandsByTick.TryGetValue(localSimTick, out List<SimCommand> list))
+            if (!_byTick.TryGetValue(tick, out List<SimCommand> list))
             {
                 return;
             }
 
-            list.Sort(CompareForExecution);
+            list.Sort(CompareWithinTick);
 
             for (int i = 0; i < list.Count; i++)
             {
-                ApplyCommand(list[i], localSimTick);
+                SimCommand cmd = list[i];
+                string target;
+
+                if (cmd.TargetKind == TargetKind.Entity)
+                {
+                    target = "TargetEntityId=" + cmd.TargetEntityId;
+                }
+                else
+                {
+                    target = "TargetPos=(" + cmd.TargetPos.XMt + "," + cmd.TargetPos.YMt + ")";
+                }
+
+                Debug.Log("[TICK " + tick + "] APPLY " + cmd.Type +
+                          " queued=" + (cmd.Queued ? "1" : "0") +
+                          " sel=" + BuildIds(cmd.SelectedEntityIds) +
+                          " " + target);
             }
 
-            _commandsByTick.Remove(localSimTick);
+            _byTick.Remove(tick);
         }
 
-        private void ApplyCommand(SimCommand command, uint localSimTick)
+        private string BuildIds(uint[] ids)
         {
-            switch (command.Type)
+            _sb.Clear();
+            _sb.Append('[');
+            if (ids != null)
             {
-                case CommandType.Move:
-                    if (debugLogs)
+                for (int i = 0; i < ids.Length; i++)
+                {
+                    if (i > 0)
                     {
-                        Debug.Log(
-                            $"[CommandQueue] Tick {localSimTick}: MOVE p={command.PlayerId} seq={command.CommandSeq} " +
-                            $"to=({command.TargetPos.XMt},{command.TargetPos.YMt}) units={command.SelectedEntityIds.Length}");
+                        _sb.Append(',');
                     }
-                    break;
 
-                case CommandType.Attack:
-                    if (debugLogs)
-                    {
-                        Debug.Log(
-                            $"[CommandQueue] Tick {localSimTick}: ATTACK p={command.PlayerId} seq={command.CommandSeq} " +
-                            $"target={command.TargetEntityId} units={command.SelectedEntityIds.Length}");
-                    }
-                    break;
-
-                default:
-                    if (debugLogs)
-                    {
-                        Debug.Log(
-                            $"[CommandQueue] Tick {localSimTick}: {command.Type} (not implemented yet) p={command.PlayerId} seq={command.CommandSeq}");
-                    }
-                    break;
+                    _sb.Append(ids[i]);
+                }
             }
+
+            _sb.Append(']');
+            return _sb.ToString();
         }
 
-        private static int CompareForExecution(SimCommand a, SimCommand b)
+        private static int CompareWithinTick(SimCommand a, SimCommand b)
         {
             int byPlayer = a.PlayerId.CompareTo(b.PlayerId);
             if (byPlayer != 0)
@@ -96,37 +96,30 @@ namespace Back2War.Core.Simulation
                 return bySeq;
             }
 
-            int byType = ((byte)a.Type).CompareTo((byte)b.Type);
+            int byType = ((int)a.Type).CompareTo((int)b.Type);
             if (byType != 0)
             {
                 return byType;
             }
 
-            uint aFirst = FirstSelectedEntityId(a.SelectedEntityIds);
-            uint bFirst = FirstSelectedEntityId(b.SelectedEntityIds);
+            uint aFirst = FirstSelected(a.SelectedEntityIds);
+            uint bFirst = FirstSelected(b.SelectedEntityIds);
             return aFirst.CompareTo(bFirst);
         }
 
-        private static uint FirstSelectedEntityId(uint[] ids)
+        private static uint FirstSelected(uint[] ids)
         {
             return ids != null && ids.Length > 0 ? ids[0] : uint.MaxValue;
         }
 
-        private static SimCommand Canonicalize(SimCommand command)
+        private static uint[] Canonicalize(uint[] ids)
         {
-            SimCommand canonical = command;
-            canonical.SelectedEntityIds = CanonicalizeSelectedEntityIds(command.SelectedEntityIds);
-            return canonical;
-        }
-
-        private static uint[] CanonicalizeSelectedEntityIds(uint[] entityIds)
-        {
-            if (entityIds == null || entityIds.Length == 0)
+            if (ids == null || ids.Length == 0)
             {
                 return Array.Empty<uint>();
             }
 
-            uint[] sorted = (uint[])entityIds.Clone();
+            uint[] sorted = (uint[])ids.Clone();
             Array.Sort(sorted);
 
             int write = 1;

@@ -5,6 +5,7 @@ using Back2War.Core.Selection;
 using Back2War.Core.Simulation;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using SelectionEntityId = Back2War.Core.Selection.EntityId;
 
 namespace Back2War.Core.Input
 {
@@ -103,7 +104,7 @@ namespace Back2War.Core.Input
             List<uint> selectedEntityIds = CopySelection(selection);
             SimCommand command;
 
-            EntityId hitEntity = TryPickSelectableAtPointer();
+            SelectionEntityId hitEntity = TryPickSelectableAtPointer();
             if (hitEntity != null && hitEntity.OwnerPlayerId != localPlayerId)
             {
                 command = CommandSerializer.CreateAttackCommand(
@@ -140,7 +141,7 @@ namespace Back2War.Core.Input
             }
         }
 
-        private EntityId TryPickSelectableAtPointer()
+        private SelectionEntityId TryPickSelectableAtPointer()
         {
             if (worldCamera == null)
             {
@@ -160,7 +161,7 @@ namespace Back2War.Core.Input
                 return null;
             }
 
-            EntityId bestEntity = null;
+            SelectionEntityId bestEntity = null;
             long bestDistanceKey = long.MaxValue;
             uint bestEntityId = uint.MaxValue;
 
@@ -172,7 +173,7 @@ namespace Back2War.Core.Input
                     continue;
                 }
 
-                EntityId entity = collider.GetComponentInParent<EntityId>();
+                SelectionEntityId entity = collider.GetComponentInParent<SelectionEntityId>();
                 if (entity == null)
                 {
                     continue;

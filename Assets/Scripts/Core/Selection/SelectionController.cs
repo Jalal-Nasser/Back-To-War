@@ -1,161 +1,216 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Back2War.Core.World;
 using UnityEngine;
 
 namespace Back2War.Core.Selection
 {
     /// <summary>
-    /// Determinism constraints:
-    /// - Selected entity IDs are always sorted ascending.
-    /// - Shift toggles use deterministic binary-search insert/remove.
-    /// - Hit tie-break is nearest distance key, then lower entity_id.
+    /// Deterministic selection store and drag-box selection.
+    /// selectedIds stays sorted ascending and unique at all times.
     /// </summary>
     public sealed class SelectionController : MonoBehaviour
     {
-        [SerializeField] private Camera worldCamera;
-        [SerializeField] private LayerMask selectableLayerMask = ~0;
-        [SerializeField] private float selectableRaycastDistance = 10000f;
-        [SerializeField] private bool debugLogs;
+        [SerializeField] private float dragThresholdPixels = 8f;
 
-        private readonly List<uint> _selectedEntityIds = new List<uint>(256);
-        private readonly RaycastHit[] _raycastHits = new RaycastHit[64];
+        private readonly List<uint> _selectedIds = new List<uint>(256);
 
-        public IReadOnlyList<uint> SelectedEntityIdsSorted => _selectedEntityIds;
+        private bool _pointerHeld;
+        private bool _dragActive;
+        private Vector2 _dragStart;
+        private Vector2 _dragCurrent;
+
+        private static Texture2D s_BoxTexture;
+
+        public IReadOnlyList<uint> SelectedIdsSorted => _selectedIds;
+        public IReadOnlyList<uint> SelectedEntityIdsSorted => _selectedIds; // backward-compat
+        public bool IsDragging => _dragActive;
 
         private void Awake()
         {
-            if (worldCamera == null)
+            if (s_BoxTexture == null)
             {
-                worldCamera = Camera.main;
+                s_BoxTexture = new Texture2D(1, 1);
+                s_BoxTexture.SetPixel(0, 0, new Color(0.2f, 0.9f, 0.3f, 0.2f));
+                s_BoxTexture.Apply();
+            }
+        }
+
+        public void BeginPointer(Vector2 screenPos)
+        {
+            _pointerHeld = true;
+            _dragActive = false;
+            _dragStart = screenPos;
+            _dragCurrent = screenPos;
+        }
+
+        public void UpdatePointer(Vector2 screenPos)
+        {
+            if (!_pointerHeld)
+            {
+                return;
             }
 
-            if (selectableLayerMask == ~0)
+            _dragCurrent = screenPos;
+            if (!_dragActive)
             {
-                int selectableLayer = LayerMask.NameToLayer("Selectable");
-                if (selectableLayer >= 0)
+                float sqr = (_dragCurrent - _dragStart).sqrMagnitude;
+                if (sqr >= dragThresholdPixels * dragThresholdPixels)
                 {
-                    selectableLayerMask = 1 << selectableLayer;
+                    _dragActive = true;
                 }
             }
         }
 
-        public void HandleSelectionInput()
+        public bool EndPointer(Vector2 screenPos, bool shiftHeld, Camera cam)
         {
-            if (!global::UnityEngine.Input.GetMouseButtonDown(0))
+            if (!_pointerHeld)
             {
-                return;
+                return false;
             }
 
-            bool shiftHeld = IsShiftPressed();
-            EntityId hitEntity = TryPickSelectableAtPointer();
+            _dragCurrent = screenPos;
+            bool consumedAsDrag = _dragActive;
+            _pointerHeld = false;
 
-            if (hitEntity == null)
+            if (consumedAsDrag)
             {
-                if (!shiftHeld)
-                {
-                    ClearSelection();
-                }
-
-                return;
+                ApplyDragBoxSelection(shiftHeld, cam);
             }
 
-            if (shiftHeld)
+            _dragActive = false;
+            return consumedAsDrag;
+        }
+
+        public void SelectSingle(uint entityId)
+        {
+            _selectedIds.Clear();
+            _selectedIds.Add(entityId);
+        }
+
+        public void Toggle(uint entityId)
+        {
+            int idx = _selectedIds.BinarySearch(entityId);
+            if (idx >= 0)
             {
-                ToggleSelection(hitEntity.Id);
+                _selectedIds.RemoveAt(idx);
             }
             else
             {
-                SelectSingle(hitEntity.Id);
-            }
-
-            if (debugLogs)
-            {
-                Debug.Log($"[SelectionController] Selected: {string.Join(",", _selectedEntityIds)}");
+                _selectedIds.Insert(~idx, entityId);
             }
         }
 
-        public void ClearSelection()
+        public void Clear()
         {
-            _selectedEntityIds.Clear();
+            _selectedIds.Clear();
         }
 
-        private void SelectSingle(uint entityId)
+        // Legacy entry-point retained for older scripts still in the project.
+        public void HandleSelectionInput()
         {
-            _selectedEntityIds.Clear();
-            _selectedEntityIds.Add(entityId);
         }
 
-        private void ToggleSelection(uint entityId)
+        private void ApplyDragBoxSelection(bool shiftHeld, Camera cam)
         {
-            int index = _selectedEntityIds.BinarySearch(entityId);
-            if (index >= 0)
+            if (cam == null)
             {
-                _selectedEntityIds.RemoveAt(index);
                 return;
             }
 
-            _selectedEntityIds.Insert(~index, entityId);
-        }
+            Rect box = BuildRect(_dragStart, _dragCurrent);
+            Selectable[] selectables = Object.FindObjectsByType<Selectable>(
+                FindObjectsInactive.Exclude,
+                FindObjectsSortMode.None);
 
-        private EntityId TryPickSelectableAtPointer()
-        {
-            if (worldCamera == null)
+            var boxIds = new List<uint>(selectables.Length);
+            for (int i = 0; i < selectables.Length; i++)
             {
-                return null;
-            }
-
-            Ray ray = worldCamera.ScreenPointToRay(global::UnityEngine.Input.mousePosition);
-            int hitCount = Physics.RaycastNonAlloc(
-                ray,
-                _raycastHits,
-                selectableRaycastDistance,
-                selectableLayerMask,
-                QueryTriggerInteraction.Ignore);
-
-            if (hitCount <= 0)
-            {
-                return null;
-            }
-
-            EntityId bestEntity = null;
-            long bestDistanceKey = long.MaxValue;
-            uint bestEntityId = uint.MaxValue;
-
-            for (int i = 0; i < hitCount; i++)
-            {
-                Collider collider = _raycastHits[i].collider;
-                if (collider == null)
+                Selectable selectable = selectables[i];
+                if (selectable == null || !selectable.isActiveAndEnabled)
                 {
                     continue;
                 }
 
-                EntityId entity = collider.GetComponentInParent<EntityId>();
+                var entity = selectable.GetComponent<EntityId>();
                 if (entity == null)
                 {
                     continue;
                 }
 
-                long distanceKey = QuantizeDistance(_raycastHits[i].distance);
-                if (distanceKey < bestDistanceKey || (distanceKey == bestDistanceKey && entity.Id < bestEntityId))
+                Vector3 screen = cam.WorldToScreenPoint(selectable.transform.position);
+                if (screen.z <= 0f)
                 {
-                    bestEntity = entity;
-                    bestDistanceKey = distanceKey;
-                    bestEntityId = entity.Id;
+                    continue;
+                }
+
+                if (box.Contains(new Vector2(screen.x, screen.y), true))
+                {
+                    boxIds.Add(entity.Id);
                 }
             }
 
-            return bestEntity;
+            if (boxIds.Count == 0)
+            {
+                if (!shiftHeld)
+                {
+                    _selectedIds.Clear();
+                }
+
+                return;
+            }
+
+            boxIds.Sort();
+
+            int write = 1;
+            for (int read = 1; read < boxIds.Count; read++)
+            {
+                if (boxIds[read] != boxIds[read - 1])
+                {
+                    boxIds[write] = boxIds[read];
+                    write++;
+                }
+            }
+
+            if (write < boxIds.Count)
+            {
+                boxIds.RemoveRange(write, boxIds.Count - write);
+            }
+
+            if (!shiftHeld)
+            {
+                _selectedIds.Clear();
+                _selectedIds.AddRange(boxIds);
+                return;
+            }
+
+            for (int i = 0; i < boxIds.Count; i++)
+            {
+                Toggle(boxIds[i]);
+            }
         }
 
-        private static long QuantizeDistance(float value)
+        private void OnGUI()
         {
-            return (long)Math.Round(value * 1000000.0d);
+            if (!_dragActive)
+            {
+                return;
+            }
+
+            Rect screenRect = BuildRect(_dragStart, _dragCurrent);
+            // Screen-space (bottom-left) -> GUI-space (top-left)
+            screenRect.y = Screen.height - screenRect.yMax;
+
+            GUI.DrawTexture(screenRect, s_BoxTexture);
+            GUI.Box(screenRect, GUIContent.none);
         }
 
-        private static bool IsShiftPressed()
+        private static Rect BuildRect(Vector2 a, Vector2 b)
         {
-            return global::UnityEngine.Input.GetKey(KeyCode.LeftShift) ||
-                   global::UnityEngine.Input.GetKey(KeyCode.RightShift);
+            float xMin = Mathf.Min(a.x, b.x);
+            float xMax = Mathf.Max(a.x, b.x);
+            float yMin = Mathf.Min(a.y, b.y);
+            float yMax = Mathf.Max(a.y, b.y);
+            return Rect.MinMaxRect(xMin, yMin, xMax, yMax);
         }
     }
 }

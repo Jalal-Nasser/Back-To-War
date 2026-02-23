@@ -3,52 +3,36 @@
 namespace Back2War.Core.Simulation
 {
     /// <summary>
-    /// Determinism constraints:
-    /// - Simulation stage processing is keyed by LocalSimTick only.
-    /// - Each tick is processed at most once in monotonic order.
+    /// Fixed-tick simulation processing entry point.
     /// </summary>
     public sealed class SimulationManager : MonoBehaviour
     {
-        [SerializeField] private SimClock simClock;
-        [SerializeField] private CommandQueue commandQueue;
-
-        private bool _initialized;
-        private uint _lastProcessedTick;
+        [SerializeField] private SimClock clock;
+        [SerializeField] private CommandQueue queue;
 
         private void Awake()
         {
 #pragma warning disable CS0618
-            if (simClock == null)
+            if (clock == null)
             {
-                simClock = FindObjectOfType<SimClock>();
+                clock = FindObjectOfType<SimClock>();
             }
 
-            if (commandQueue == null)
+            if (queue == null)
             {
-                commandQueue = FindObjectOfType<CommandQueue>();
+                queue = FindObjectOfType<CommandQueue>();
             }
 #pragma warning restore CS0618
         }
 
-        private void Update()
+        private void FixedUpdate()
         {
-            if (simClock == null || commandQueue == null)
+            if (clock == null || queue == null)
             {
                 return;
             }
 
-            if (!_initialized)
-            {
-                _lastProcessedTick = simClock.LocalSimTick;
-                commandQueue.ProcessTick(_lastProcessedTick);
-                _initialized = true;
-            }
-
-            while (_lastProcessedTick < simClock.LocalSimTick)
-            {
-                _lastProcessedTick++;
-                commandQueue.ProcessTick(_lastProcessedTick);
-            }
+            queue.ProcessTick(clock.LocalTick);
         }
     }
 }

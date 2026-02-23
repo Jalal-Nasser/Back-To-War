@@ -6,24 +6,13 @@ using UnityEngine;
 namespace Back2War.Core.Input
 {
     /// <summary>
-    /// Determinism constraints:
-    /// - Quantization snaps world hits to tile centers (milli-tiles).
-    /// - Entity lists are canonicalized (sorted ascending, unique).
-    /// - No raw floating values are serialized in SimCommand payloads.
+    /// Legacy serializer helpers retained for older prototype scripts.
     /// </summary>
     public static class CommandSerializer
     {
-        private const int MilliTilesPerTile = 1000;
-        private const int TileCenterOffsetMt = 500;
-
         public static QuantizedPos2 WorldToTileCenterQuantized(Vector3 worldPoint)
         {
-            int tileX = (int)Math.Floor(worldPoint.x);
-            int tileY = (int)Math.Floor(worldPoint.z);
-
-            int xMt = checked(tileX * MilliTilesPerTile + TileCenterOffsetMt);
-            int yMt = checked(tileY * MilliTilesPerTile + TileCenterOffsetMt);
-            return new QuantizedPos2(xMt, yMt);
+            return QuantizedPos2.FromWorldXZ(worldPoint);
         }
 
         public static uint[] CanonicalizeEntityIds(List<uint> entityIds)
@@ -33,7 +22,7 @@ namespace Back2War.Core.Input
                 return Array.Empty<uint>();
             }
 
-            var sorted = entityIds.ToArray();
+            uint[] sorted = entityIds.ToArray();
             Array.Sort(sorted);
 
             int write = 1;
@@ -51,7 +40,7 @@ namespace Back2War.Core.Input
                 return sorted;
             }
 
-            var unique = new uint[write];
+            uint[] unique = new uint[write];
             Array.Copy(sorted, unique, write);
             return unique;
         }
@@ -74,8 +63,7 @@ namespace Back2War.Core.Input
                 SelectedEntityIds = CanonicalizeEntityIds(selectedEntityIds),
                 TargetKind = TargetKind.Position,
                 TargetEntityId = 0,
-                TargetPos = WorldToTileCenterQuantized(worldPoint),
-                Alliance = default
+                TargetPos = QuantizedPos2.FromWorldXZ(worldPoint)
             };
         }
 
@@ -97,8 +85,7 @@ namespace Back2War.Core.Input
                 SelectedEntityIds = CanonicalizeEntityIds(selectedEntityIds),
                 TargetKind = TargetKind.Entity,
                 TargetEntityId = targetEntityId,
-                TargetPos = default,
-                Alliance = default
+                TargetPos = default
             };
         }
     }
